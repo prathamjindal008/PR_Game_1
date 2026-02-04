@@ -1,0 +1,130 @@
+body {
+  background: radial-gradient(circle, #2b1055, #0a043c);
+  color: gold;
+  font-family: Poppins, sans-serif;
+  text-align: center;
+  height: 100vh;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.machine {
+  display: flex;
+  gap: 30px;
+  justify-content: center;
+  margin: 30px 0;
+}
+
+.wheel {
+  width: 90px;
+  height: 90px;
+  border: 3px solid gold;
+  border-radius: 14px;
+  overflow: hidden;
+  background: linear-gradient(#3c1a70, #120458);
+}
+
+.strip {
+  position: relative;
+}
+
+.number {
+  height: 90px;                
+  display: flex;
+  align-items: center;         
+  justify-content: center;      /* horizontal center */
+  font-size: 3rem;
+  color: gold;
+}
+
+
+button {
+  padding: 12px 30px;
+  border-radius: 30px;
+  border: none;
+  font-size: 1.2rem;
+  font-weight: bold;
+  cursor: pointer;
+  background: linear-gradient(135deg, gold, #ffcc70);
+  color: #2b1055;
+}
+
+#result {
+  margin-top: 20px;
+  font-size: 1.4rem;
+}
+
+.number.win {
+  color: #ffd700;
+  text-shadow:
+    0 0 10px gold,
+    0 0 20px gold,
+    0 0 40px #ffcc00;
+}
+
+@keyframes jackpot {
+  0% { transform: scale(1); }
+  25% { transform: scale(1.05) rotate(-2deg); }
+  50% { transform: scale(1.1) rotate(2deg); }
+  75% { transform: scale(1.05) rotate(-2deg); }
+  100% { transform: scale(1); }
+}
+
+.machine.jackpot {
+  animation: jackpot 0.6s ease-in-out 3;
+}
+
+#spinBtn {
+  margin-top: 12px;
+  background: linear-gradient(135deg, #ffcc70, gold);
+  color: #2b1055;
+}
+
+.controls {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  margin-top: 30px;
+}
+
+.casino-btn {
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  border: none;
+  font-size: 1.1rem;
+  font-weight: bold;
+  cursor: pointer;
+  letter-spacing: 1px;
+  color: #2b1055;
+  box-shadow:
+    inset 0 -6px 0 rgba(0,0,0,0.25),
+    0 8px 15px rgba(0,0,0,0.4);
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+
+.casino-btn.stop {
+  background: radial-gradient(circle at top, #ff4d4d, #b30000);
+  color: white;
+}
+
+.casino-btn.stop:active {
+  transform: translateY(4px);
+  box-shadow:
+    inset 0 -2px 0 rgba(0,0,0,0.4),
+    0 4px 8px rgba(0,0,0,0.3);
+}
+
+.casino-btn.spin {
+  background: radial-gradient(circle at top, #ffe066, gold);
+  box-shadow:
+    inset 0 -6px 0 rgba(160,120,0,0.6),
+    0 8px 15px rgba(0,0,0,0.4),
+    0 0 20px rgba(255, 215, 0, 0.6);
+}
+
+.casino-btn.spin:active {
+  transform: translateY(4px);
+}
