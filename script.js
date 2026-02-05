@@ -1,133 +1,159 @@
-const wheels = [
-  { el: document.getElementById("w1"), pos: 0, interval: null },
-  { el: document.getElementById("w2"), pos: 0, interval: null },
-  { el: document.getElementById("w3"), pos: 0, interval: null }
+const reels = [
+  document.getElementById("reel1"),
+  document.getElementById("reel2"),
+  document.getElementById("reel3"),
 ];
 
-const stopBtn = document.getElementById("stopBtn");
-const spinBtn = document.getElementById("spinBtn");
-const result = document.getElementById("result");
-const machine = document.querySelector(".machine");
-const bulbFrame = document.querySelector(".bulb-frame");
+const btn = document.getElementById("controlBtn");
+const statusText = document.getElementById("status");
+const lever = document.querySelector(".lever");
 
-const itemHeight = 90;
-const speed = 7;
-const repeatCount = 60;
+const SYMBOLS = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
 
+const SYMBOL_HEIGHT = 120;
+const STRIP_SIZE = 80;
+
+const speeds = [2, 2, 2]; // px per frame ~ visible difference
+
+let rafIds = [0, 0, 0];
+let positions = [0, 0, 0];
+let running = [false, false, false];
 let stopIndex = 0;
 
-/* Build reels */
-function buildReels() {
-  wheels.forEach(w => {
-    w.el.innerHTML = "";
-    for (let i = 0; i < repeatCount * 10; i++) {
-      w.el.innerHTML += `<div class="number">${i % 10}</div>`;
-    }
-    w.pos = 0;
-    w.el.style.transform = `translateY(0)`;
-  });
+function buildStrip(reel) {
+  reel.innerHTML = "";
+
+  for (let i = 0; i < STRIP_SIZE; i++) {
+    const d = document.createElement("div");
+    d.className = "symbol";
+    d.textContent = SYMBOLS[i % SYMBOLS.length];
+
+    reel.appendChild(d);
+  }
 }
 
-/* Start spinning */
+reels.forEach(buildStrip);
+
+function triggerSpin() {
+  if (!running.some((v) => v)) startSpin();
+  else stopNext();
+}
+
+btn.onclick = triggerSpin;
+
 function startSpin() {
-  stopIndex = 0;
-  result.textContent = "";
-  machine.classList.remove("jackpot");
-  bulbFrame.classList.remove("jackpot");
+  const machine = document.querySelector(".machine");
 
-  wheels.forEach(w => {
-    w.interval = setInterval(() => {
-      w.pos -= speed;
-      if (Math.abs(w.pos) > repeatCount * 10 * itemHeight / 2) {
-        w.pos = 0;
-      }
-      w.el.style.transform = `translateY(${w.pos}px)`;
-    }, 20);
+  machine.classList.remove("win");
+
+  statusText.textContent = "";
+  btn.textContent = "STOP";
+  stopIndex = 0;
+
+  reels.forEach((reel, i) => {
+    buildStrip(reel);
+
+    running[i] = true;
+    positions[i] = 0;
+
+    loop(i);
   });
 }
 
-/* Slow brake */
-function slowStop(wheel) {
-  let localSpeed = speed;
+function loop(i) {
+  if (!running[i]) return;
 
-  const brake = setInterval(() => {
-    localSpeed -= 0.6;
+  positions[i] += speeds[i];
 
-    if (localSpeed <= 0) {
-      clearInterval(brake);
+  const maxScroll = SYMBOL_HEIGHT * STRIP_SIZE;
+  if (positions[i] >= maxScroll - SYMBOL_HEIGHT * 4) {
+    positions[i] = positions[i] % SYMBOL_HEIGHT;
+  }
 
-      const value = Math.abs(Math.round(wheel.pos / itemHeight)) % 10;
-      wheel.pos = -value * itemHeight;
-      wheel.el.style.transform = `translateY(${wheel.pos}px)`;
+  reels[i].style.transform = `translateY(-${positions[i]}px)`;
 
-      if (value === 8) {
-        wheel.el.children[value].classList.add("win");
-      }
-
-      stopIndex++;
-      if (stopIndex === 3) checkJackpot();
-      return;
-    }
-
-    wheel.pos -= localSpeed;
-    wheel.el.style.transform = `translateY(${wheel.pos}px)`;
-  }, 20);
+  rafIds[i] = requestAnimationFrame(() => loop(i));
 }
 
-/* Stop button */
-stopBtn.addEventListener("click", () => {
+function stopNext() {
   if (stopIndex >= 3) return;
-  clearInterval(wheels[stopIndex].interval);
-  slowStop(wheels[stopIndex]);
-});
 
-/* Spin again */
-spinBtn.addEventListener("click", () => {
-  wheels.forEach(w => clearInterval(w.interval));
-  buildReels();
-  startSpin();
-});
+  const i = stopIndex;
 
-/* Jackpot check */
-function checkJackpot() {
-  const values = wheels.map(w =>
-    Math.abs(Math.round(w.pos / itemHeight)) % 10
-  );
+  running[i] = false;
+  cancelAnimationFrame(rafIds[i]);
 
-  if (values.every(v => v === 8)) {
-    result.textContent = "✨ JACKPOT! TRIPLE 8 ✨";
-    machine.classList.add("jackpot");
-    bulbFrame.classList.add("jackpot");
-    particleBurst();
+  reels[i].classList.remove("spin-blur");
+
+  snapToGrid(i);
+
+  stopIndex++;
+
+  if (stopIndex === 3) {
+    btn.textContent = "SPIN";
+    checkWin();
+  }
+}
+
+function snapToGrid(i) {
+  const idx = Math.round(positions[i] / SYMBOL_HEIGHT);
+
+  const final = idx * SYMBOL_HEIGHT;
+
+  reels[i].style.transition = "0.05s ease-out";
+  reels[i].style.transform = `translateY(-${final}px)`;
+
+  positions[i] = final;
+
+  setTimeout(() => {
+    reels[i].style.transition = "";
+  }, 150);
+}
+
+function visibleSymbol(i) {
+  const idx = Math.round(positions[i] / SYMBOL_HEIGHT);
+  return reels[i].children[idx].textContent;
+}
+
+function checkWin() {
+  const vals = [0, 1, 2].map(visibleSymbol);
+
+  const machine = document.querySelector(".machine");
+
+  machine.classList.remove("win");
+
+  if (vals.every((v) => "8" === v)) {
+    statusText.textContent = "!JACKPOT!";
+    statusText.style.color = "lime";
+
+    machine.classList.add("win");
+  } else if (vals[0] === vals[1] && vals[1] === vals[2]) {
+    statusText.textContent = "🎯 MATCH!";
+    statusText.style.color = "gold";
+
+    machine.classList.add("win");
   } else {
-    result.textContent = "❌ Try Again";
+    statusText.textContent = "Miss!";
+    statusText.style.color = "orange";
   }
 }
 
-/* Particle burst */
-function particleBurst() {
-  for (let i = 0; i < 40; i++) {
-    const p = document.createElement("div");
-    p.className = "particle";
-    document.body.appendChild(p);
+let leverLocked = false;
 
-    p.style.left = window.innerWidth / 2 + "px";
-    p.style.top = window.innerHeight / 2 + "px";
+lever.addEventListener("click", () => {
+  if (leverLocked) return;
 
-    const angle = Math.random() * Math.PI * 2;
-    const distance = Math.random() * 200;
+  leverLocked = true;
 
-    p.animate([
-      { transform: "translate(0,0)", opacity: 1 },
-      { transform: `translate(${Math.cos(angle)*distance}px, ${Math.sin(angle)*distance}px)`, opacity: 0 }
-    ], { duration: 800 });
+  triggerSpin();
 
-    setTimeout(() => p.remove(), 800);
-  }
-}
+  document.querySelector(".machine").classList.add("shake");
 
-/* Init */
-buildReels();
-startSpin();
+  lever.classList.add("pull");
 
-
+  setTimeout(() => {
+    lever.classList.remove("pull");
+    leverLocked = false;
+    document.querySelector(".machine").classList.remove("shake");
+  }, 180);
+});
